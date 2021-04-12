@@ -3,13 +3,15 @@ from flask import request
 from flask import jsonify
 from flask_cors import CORS
 import json
+import random
+import string
 
 
 app = Flask(__name__)
 CORS(app)
 
-
 @app.route('/')
+
 def hello_world():
     return 'Hello, World!'
     
@@ -71,43 +73,41 @@ def get_users():
       return users
    elif request.method == 'POST':
       userToAdd = request.get_json()
+      userToAdd['id'] = generateID()
       users['users_list'].append(userToAdd)
-      resp = jsonify(success=True)
-      #resp.status_code = 200 #optionally, you can always set a response code. 
-      # 200 is the default code for a normal response
+      resp = jsonify(name = userToAdd['name'],
+      job = userToAdd['job'], id = userToAdd['id'], 
+      success=True)
+      resp.status_code = 201
       return resp
-   elif request.method == 'DELETE':
-      # need to send whole user to the request
-      userToDelete = request.get_json()
-      users['users_list'].remove(userToDelete)
-      resp = jsonify(success=True)
-      #resp.status_code = 200 #optionally, you can always set a response code. 
-      # 200 is the default code for a normal response
-      return resp
-      
-# def get_users():
-#    search_username = request.args.get('name') #accessing the value of parameter 'name'
-#    if search_username :
-#       subdict = {'users_list' : []}
-#       for user in users['users_list']:
-#          if user['name'] == search_username:
-#             subdict['users_list'].append(user)
-#       return subdict
-#    return users
    
-@app.route('/users/<id>')
+@app.route('/users/<id>', methods=['GET', 'DELETE'])
 
 def get_user(id):
-   if id :
+   if request.method == 'GET':
+      if id :
+         for user in users['users_list']:
+            if user['id'] == id:
+               return user
+            return ({})
+      return users
+   elif request.method == 'DELETE':
       for user in users['users_list']:
-        if user['id'] == id:
-           return user
-      return ({})
-   return users
+         if user['id'] == id:
+            users['users_list'].remove(user)
+            resp = jsonify(success=True)
+            resp.status_code = 204
+            return resp
+      resp = jsonify(success=False)
+      resp.status_code = 404
+      return resp
    
 def find_users_by_name(name):
    subdict = {'users_list' : []}
    for user in users['users_list']:
       if user['name'] == name:
          subdict['users_list'].append(user)
-   return subdict   
+   return subdict
+
+def generateID():
+    return ''.join(random.choice(string.ascii_letters + string.digits) for i in range(6))
